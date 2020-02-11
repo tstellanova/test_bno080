@@ -1,0 +1,37 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceRoot}",
+            "executable": "target/thumbv7em-none-eabihf/debug/bno-test",
+            "name": "Debug Microcontroller",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "runToMain":true,
+            //"svdFile": "STM32F401.svd",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg",
+                //"board/st_nucleo_h743zi.cfg",
+            ],
+            "swoConfig": {
+                "enabled": true,
+                "cpuFrequency": 16000000,
+                "swoFrequency": 2000000,
+                "source": "probe",
+                "decoders": [
+                    {
+                        "type": "console",
+                        "label": "ITM",
+                        "port": 0
+                    }
+                ]
+            }
+
+        }
+    ]
+}
