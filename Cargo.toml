@@ -1,5 +1,5 @@
 [package]
-name = "bno-test"
+name = "test_bno080"
 version = "0.1.0"
 keywords = ["arm", "cortex-m"]
 categories = ["embedded", "no-std"]
@@ -14,8 +14,8 @@ embedded-hal = {version = "0.2.3", features = ["unproven"]  }
 cortex-m-rtfm = "0.5.1"
 stm32f4xx-hal = { version =" 0.6.0", features = ["stm32f401", "rt"] }
 
-#bno080 = { path = "../BNO080" }
-bno080 = { git = "https://github.com/tstellanova/bno080.git" }
+bno080 = { path = "../BNO080" }
+#bno080 = { git = "https://github.com/tstellanova/bno080.git" }
 
 
 #cortex-m-log = { version = "0.6.1", features = ["log-integration", "itm", "semihosting"] }

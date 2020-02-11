@@ -13,24 +13,16 @@ use rtfm::cyccnt::U32Ext;
 
 use stm32f4xx_hal as processor_hal;
 
-//use processor_hal::gpio::{gpiob::PB6, gpiob::PB7};
 use processor_hal::gpio::{gpioc::PC13, Output, PushPull};
 use processor_hal::prelude::*;
-//use processor_hal::flash::FlashExt;
-//use processor_hal::rcc::RccExt;
-//use processor_hal::pwr::PwrExt;
-
-//use processor_hal::i2c::{I2cExt};
 
 use processor_hal::stm32 as pac;
 use pac::I2C1;
-
 use pac::DWT;
 
 
 use embedded_hal::{
     digital::v2::{OutputPin, ToggleableOutputPin},
-//    blocking::i2c::{Read, Write, WriteRead},
 };
 
 //use cortex_m_semihosting::{ hprintln};
@@ -49,8 +41,6 @@ type ImuDriverType = bno080::BNO080<processor_hal::i2c::I2c<I2C1,
      processor_hal::gpio::gpiob::PB7<processor_hal::gpio::Alternate<processor_hal::gpio::AF4>>)
 >>;
 
-//let gpioc = dp.GPIOC.split();
-//let mut user_led1 = gpioc.pc13.into_push_pull_output();
 
 // We need to pass monotonic = rtfm::cyccnt::CYCCNT to use schedule feature of RTFM
 #[app(device = stm32f4xx_hal::stm32,  peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
@@ -72,14 +62,9 @@ const APP: () = {
         // Enable cycle counter
         let mut core = cx.core;
         core.DWT.enable_cycle_counter();
-//        let before = core.DWT.cyccnt.read();
 
         let dp: processor_hal::stm32::Peripherals = cx.device;
         let cp = cortex_m::Peripherals::take().unwrap();
-
-        // Setup clocks
-        //let _flash = device.FLASH.constrain();
-
 
         // Constrain and Freeze clock
         let rcc = dp.RCC.constrain();
@@ -129,43 +114,41 @@ const APP: () = {
     /// Second phase startup: interrupts are enabled
     #[task(resources = [i2c1_driver, delay_source, itm], spawn = [oneshot], schedule = [imu_reader]) ]
     fn kicker(cx: kicker::Context) {
-        //let stim = &mut cortex_m::Peripherals::take().unwrap().ITM.stim[0];
-        let stim =  &mut cx.resources.itm.stim[0];
-        iprintln!(stim, "| {} | kicker start", DWT::get_cycle_count() );
+        iprintln!(&mut cx.resources.itm.stim[0], "| {} | kicker start", DWT::get_cycle_count() );
         let res =  cx.resources.i2c1_driver.init(cx.resources.delay_source);
         if res.is_err() {
-            iprintln!( stim,"bno080 init err {:?}", res);
+            iprintln!( &mut cx.resources.itm.stim[0],"bno080 init err {:?}", res);
         }
         else {
-            //iprintln!(stim,"bno080 OK");
+            iprintln!(&mut cx.resources.itm.stim[0],"bno080 OK");
             cx.schedule.imu_reader(cx.scheduled + IMU_READ_PERIOD.cycles() ).unwrap();
         }
 
         cx.spawn.oneshot().unwrap();
-        iprintln!(stim,"| {} | kicker done", DWT::get_cycle_count() );
+        iprintln!(&mut cx.resources.itm.stim[0],"| {} | kicker done", DWT::get_cycle_count() );
     }
 
-    #[task(resources = [i2c1_driver], schedule = [imu_reader])]
+    #[task(resources = [i2c1_driver, itm], schedule = [imu_reader])]
     fn imu_reader(cx: imu_reader::Context) {
         cx.resources.i2c1_driver.handle_all_messages();
         let sched_res = cx.schedule.imu_reader(cx.scheduled + IMU_READ_PERIOD.cycles());
         if sched_res.is_err() {
-            //iprintln!(stim,"sched err: {:?}", sched_res);
+            iprintln!(&mut cx.resources.itm.stim[0],"imu sched err: {:?}", sched_res);
         }
     }
 
 
-    #[task]
-    fn oneshot(_cx: oneshot::Context) {
-        //hprintln!("| {} | oneshot done",DWT::get_cycle_count() ).unwrap();
+    #[task(resources = [itm])]
+    fn oneshot(cx: oneshot::Context) {
+        iprintln!(&mut cx.resources.itm.stim[0], "| {} | oneshot done",DWT::get_cycle_count() );
     }
 
-    #[task(resources = [user_led1], schedule = [blinker])]
+    #[task(resources = [user_led1, itm], schedule = [blinker])]
     fn blinker(cx: blinker::Context) {
         // Use the safe local `static mut` of RTFM
         static mut LED_STATE: bool = false;
 
-        //iprintln!(stim, "| {} | blinker start", DWT::get_cycle_count() );
+        //iprintln!(&mut cx.resources.itm.stim[0], "| {} | blinker start", DWT::get_cycle_count() );
 
         if *LED_STATE {
             cx.resources.user_led1.toggle().unwrap();
@@ -177,7 +160,7 @@ const APP: () = {
         }
         let sched_res = cx.schedule.blinker(cx.scheduled + BLINK_PERIOD.cycles());
         if sched_res.is_err() {
-            //iprintln!(stim,"sched err: {:?}", sched_res);
+            iprintln!(&mut cx.resources.itm.stim[0],"blinkersched err: {:?}", sched_res);
         }
 
     }
